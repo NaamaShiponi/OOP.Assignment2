@@ -1,4 +1,6 @@
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.*;
@@ -15,12 +17,13 @@ public class CustomExecutor extends ThreadPoolExecutor{
     /**
      * This array stores the count of number of tasks submitted for each priority value.
      */
-    int[] priorityTask = new int[10];
+    private static final int[] priorityTask = new int[10];
+    public int count = 0;
 
     /**
      * The number of cores available on the system.
      */
-    private static final int numOfCores= Runtime.getRuntime().availableProcessors();
+    private static final int numOfCores = Runtime.getRuntime().availableProcessors();
 
     /**
      * Creates a new CustomExecutor.
@@ -40,7 +43,12 @@ public class CustomExecutor extends ThreadPoolExecutor{
         public <T> Future<T> submit(Task<T> task){
 //        return super.submit(task.getCall());
             if (task == null) throw new NullPointerException();
-            priorityTask[task.getType().getPriorityValue()-1]++;
+            synchronized (CustomExecutor.class){
+                int j = task.getType().getPriorityValue()-1;
+                System.out.println("j = "+ j);
+                priorityTask[j]++;
+                System.out.println("priorityTask array before execute in submit function: "+Arrays.toString(priorityTask));
+            }
             execute(task);
             return task;
     }
@@ -75,16 +83,21 @@ public class CustomExecutor extends ThreadPoolExecutor{
     public void gracefullyTerminate(){
         super.shutdown();
     }
+
     /**
      * Returns the current maximum priority value of the task that has been submitted.
      *
      * @return  priority value of the task that has been submitted
      */
-    public int getCurrentMax(){
+    public synchronized int getCurrentMax(){
         int priority = 0;
-        while ((priorityTask[priority] != 0) && (priority < 10)){
+        while (priorityTask[priority] != 0){
             priority++;
         }
+        if((priority == 9) && (priorityTask[priority] == 0)){
+            return -1;
+        }
+        System.out.println(Arrays.toString(priorityTask));
         return priority+1;
     }
 
@@ -98,9 +111,17 @@ public class CustomExecutor extends ThreadPoolExecutor{
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
+        System.out.println("getCurrentMax = "+getCurrentMax());
         if(r instanceof Task<?> task)
         {
-            priorityTask[task.getType().getPriorityValue()-1]--;
+            synchronized (this){
+                count++;
+                System.out.println("count = "+count);
+                int i = task.getType().getPriorityValue()-1;
+                priorityTask[i] = priorityTask[i] - 1;
+                System.out.println("priorityTask array in beforeExecute function: "+Arrays.toString(priorityTask));
+                System.out.println("i = "+ i);
+            }
         }
     }
 }
