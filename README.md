@@ -1,10 +1,11 @@
-# Overview
+# OOP.Assignment2
+## Overview
 This code provides a Task class and a CustomExecutor class that enable the execution of tasks with different
 priorities. The Task class extends the FutureTask class and implements the Comparable interface to allow for sorting
 of tasks based on their priority. The CustomExecutor class extends the ThreadPoolExecutor class and provides methods
 for submitting tasks for execution, as well as for gracefully shutting down the executor.
 
-## Code Structure
+### Code Structure
 This codebase contains two main classes: Task and CustomExecutor, and one enumeration TaskType.
 
 The Task class is a generic class that wraps a Callable object and assigns a priority to it using the enumeration
@@ -18,26 +19,26 @@ it defines 3 different priorities: Computational, IO-Bound and Unknown.
 It is implemented in such a way that it allows assigning priority to the task in question and also allows
 setting new priority values to the task.
 
-### Interfaces
+#### Interfaces
 Comparable<Task<T>>: the Task class implements this interface, this allows sorting the tasks according to
 their priority.
 
-### Classes
+#### Classes
 Task<T>: This class is a wrapper around a Callable object, it allows giving a priority to the task by using
          TaskType enum.
 TaskType: This enum defines the different priorities that a task can have.
 CustomExecutor : This class is an implementation of the ThreadPoolExecutor, it allows submitting tasks with priority,
                  you can get the current max priority of the tasks in the queue.
 
-# Usage
+## Usage
 
-## Creating a Task
+### Creating a Task
 To create a new task, you can use the createTask method in the Task class.
 This method takes a Callable object and a TaskType object as arguments and returns a new Task object.
 The Callable object represents the task that should be executed, and the TaskType object represents
 the priority of the task. If no TaskType is provided, the task will be given a default TaskType.OTHER priority.
 
-### An example of the implementation of Creating a Task
+#### An example of the implementation of Creating a Task
 // create a new task with a high priority
 
 Callable<String> callable = () -> "Hello World";
@@ -54,11 +55,11 @@ Callable<Integer> callable = () -> 42;
 Task<Integer> defaultPriorityTask = Task.createTask(callable);
 
 
-## Executing a Task
+### Executing a Task
 To execute a task, you can use the submit method in the CustomExecutor class.
 This method takes a Task object as an argument and adds it to the priority queue for execution.
 
-# An example of the implementation of Executing a Task
+#### An example of the implementation of Executing a Task
 
 CustomExecutor executor = new CustomExecutor();
 
@@ -69,25 +70,25 @@ Future<String> highPriorityFuture = executor.submit(highPriorityTask);
 Future<Integer> defaultPriorityFuture = executor.submit(defaultPriorityTask);
 
 
-## Gracefully Terminating the Executor
+### Gracefully Terminating the Executor
 To gracefully terminate the executor, you can use the gracefullyTerminate method in the CustomExecutor class.
 This method will wait for all currently running tasks to complete before shutting down the executor.
 
-# An example of the implementation of Gracefully Terminating the Executor
+#### An example of the implementation of Gracefully Terminating the Executor
 
 executor.gracefullyTerminate();
 
 
-## Retrieving the Current Maximum Priority
+### Retrieving the Current Maximum Priority
 You can use the getCurrentMax() method in the CustomExecutor class to retrieve the current maximum priority.
 
-### An example of the implementation of Retrieving the Current Maximum Priority
+#### An example of the implementation of Retrieving the Current Maximum Priority
 
 CustomExecutor executor = new CustomExecutor();
 
 int currentMaxPriority = executor.getCurrentMax();
 
-## Notes
+### Notes
 1. The code above is implemented using the factory method pattern where the "createTask" method in the Task class
 is considered as factory method, it returns a new instance of the Task class with the given parameters.
 Additionally, the "submit" method in the CustomExecutor class also uses the factory method pattern by using
@@ -111,4 +112,4 @@ functionality, it does not have unnecessary methods.
 
 Dependency Inversion Principle (DIP): The Task class is dependent on the Callable interface and does not depend on any
 concrete implementation of Callable. This allows the code to be more flexible and testable, and helps to avoid
-tightly-coupled code.# OOP.Assignment2
+tightly-coupled code.
