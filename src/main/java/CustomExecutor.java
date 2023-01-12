@@ -1,32 +1,38 @@
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.PriorityQueue;
 import java.util.concurrent.*;
 
 /**
- * A custom implementation of the {@link ThreadPoolExecutor} class.
- * This class uses a {@link PriorityBlockingQueue} to manage the execution order of tasks, with higher priority tasks being executed first.
- *
- *  @author Ben Dabush and Naana Shiponi
- *  @version 1.0.0 January 12, 2023
- */
+  * CustomExecutor is a thread pool executor implementation of the {@link ThreadPoolExecutor} class.
+  * This class uses a {@link PriorityBlockingQueue} to manage the execution order of tasks,
+  * Each task is associated with a priority determined by the TaskType enum. Tasks with higher priority are executed
+  * before tasks with lower priority.
+  *
+  *  @author Ben Dabush and Naana Shiponi
+  *  @version 1.0.0 January 12, 2023
+  *
+  */
 public class CustomExecutor extends ThreadPoolExecutor{
 
     /**
-     * This array stores the count of number of tasks submitted for each priority value.
+     * An array to store the count of tasks for each priority
      */
-    private static final int[] priorityTask = new int[10];
+    private static final int[] priorityTaskArray = new int[10];
+
+    /**
+     * A count variable
+     */
     public int count = 0;
 
     /**
-     * The number of cores available on the system.
+     * The number of cores of the machine
      */
     private static final int numOfCores = Runtime.getRuntime().availableProcessors();
 
     /**
-     * Creates a new CustomExecutor.
+     * Constructor of CustomExecutor
+     *
      */
     public CustomExecutor(){
         super(numOfCores/2,numOfCores-1,
@@ -34,23 +40,19 @@ public class CustomExecutor extends ThreadPoolExecutor{
     }
 
     /**
-     * Submits a task for execution and returns a Future representing that task.
+     * Submits the given task for execution and returns a Future representing that task.
      *
-     * @param task The task to be submitted.
-     * @return A Future representing the task.
-     * @throws NullPointerException If the task is null.
+     * @param task the task to submit
+     * @return a Future representing pending completion of the task
+     * @throws NullPointerException if the task is null
      */
-        public <T> Future<T> submit(Task<T> task){
-//        return super.submit(task.getCall());
-            if (task == null) throw new NullPointerException();
-            synchronized (CustomExecutor.class){
-                int j = task.getType().getPriorityValue()-1;
-                System.out.println("j = "+ j);
-                priorityTask[j]++;
-                System.out.println("priorityTask array before execute in submit function: "+Arrays.toString(priorityTask));
-            }
-            execute(task);
-            return task;
+    public <T> Future<T> submit(Task<T> task){
+        if (task == null) throw new NullPointerException();
+        synchronized (CustomExecutor.class){
+            changePriorityTaskArray(1, task.getType().getPriorityValue()-1);
+        }
+        execute(task);
+        return task;
     }
 
     /**
@@ -66,10 +68,11 @@ public class CustomExecutor extends ThreadPoolExecutor{
     }
 
     /**
-     * Submits a task for execution with the task type "OTHER" and returns a Future representing that task.
+     * Submits the given callable task for execution and returns a Future representing that task,
+     * with the default task type (OTHER).
      *
-     * @param call The callable that the task will execute.
-     * @return A Future representing the task.
+     * @param call the callable task
+     * @return a Future representing pending completion of the task
      */
     public <T> Future<T> submit(@NotNull Callable<T> call) {
         Task<T> task= Task.createTask(call);
@@ -77,53 +80,62 @@ public class CustomExecutor extends ThreadPoolExecutor{
     }
 
     /**
-     * Initiates an orderly shutdown in which previously submitted tasks are executed, but no new tasks will be accepted.
-     *
+     * Initiates an orderly shutdown in which previously submitted tasks are executed,
+     * but no new tasks will be accepted.
      */
     public void gracefullyTerminate(){
         super.shutdown();
     }
 
     /**
-     * Returns the current maximum priority value of the task that has been submitted.
-     *
-     * @return  priority value of the task that has been submitted
+     * Returns the current maximum priority of the task in the queue.
+     * @return the current maximum priority of the task
      */
     public synchronized int getCurrentMax(){
-        int priority = 0;
-        while (priorityTask[priority] != 0){
-            priority++;
-        }
-        if((priority == 9) && (priorityTask[priority] == 0)){
-            return -1;
-        }
-        System.out.println(Arrays.toString(priorityTask));
-        return priority+1;
+        return changePriorityTaskArray(0, 0);
     }
 
     /**
      * Method that is called before a task is executed.
      * It is responsible for decrementing the count of tasks for the corresponding priority value.
      *
-     * @param t the thread that will run task
+     * @param t the thread on which the task is about to execute
      * @param r the task that will be executed
      */
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
-        System.out.println("getCurrentMax = "+getCurrentMax());
         if(r instanceof Task<?> task)
         {
             synchronized (this){
-                count++;
-                System.out.println("count = "+count);
-                int i = task.getType().getPriorityValue()-1;
-                priorityTask[i] = priorityTask[i] - 1;
-                System.out.println("priorityTask array in beforeExecute function: "+Arrays.toString(priorityTask));
-                System.out.println("i = "+ i);
+                changePriorityTaskArray(2, task.getType().getPriorityValue()-1);
             }
         }
     }
-}
 
+    /**
+     * A private helper method that changes the priorityTaskArray depending on the whichFunction parameter
+     * @param whichFunction 0: get the current max priority,
+     *                      1: increment the priority count,
+     *                      2: decrement the priority count
+     * @param priorityTask the priority of the task
+     * @return -1 if whichFunction is 1 or 2, otherwise the max priority in the array
+     */
+    private synchronized int changePriorityTaskArray(int whichFunction, int priorityTask)
+    {
+        if(whichFunction == 0) {
+            for (int priority = 0; priority < 10; priority++) {
+                if (0 < priorityTaskArray[priority]) {
+                    return priority + 1;
+                }
+            }
+        } else if (whichFunction == 1) {
+            priorityTaskArray[priorityTask]++;
+        } else {
+            priorityTaskArray[priorityTask]--;
+        }
+        System.out.println(Arrays.toString(priorityTaskArray));
+        return -1;
+    }
+}
 
