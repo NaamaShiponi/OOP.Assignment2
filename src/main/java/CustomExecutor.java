@@ -18,12 +18,7 @@ public class CustomExecutor extends ThreadPoolExecutor{
     /**
      * An array to store the count of tasks for each priority
      */
-    private static final int[] priorityTaskArray = new int[10];
-
-    /**
-     * A count variable
-     */
-    public int count = 0;
+    private volatile int[] priorityTaskArray = new int[10];
 
     /**
      * The number of cores of the machine
@@ -36,7 +31,7 @@ public class CustomExecutor extends ThreadPoolExecutor{
      */
     public CustomExecutor(){
         super(numOfCores/2,numOfCores-1,
-                300, TimeUnit.MILLISECONDS,new PriorityBlockingQueue<>());
+                300, TimeUnit.MILLISECONDS,new PriorityBlockingQueue<>(10));
     }
 
     /**
@@ -48,9 +43,7 @@ public class CustomExecutor extends ThreadPoolExecutor{
      */
     public <T> Future<T> submit(Task<T> task){
         if (task == null) throw new NullPointerException();
-        synchronized (CustomExecutor.class){
-            changePriorityTaskArray(1, task.getType().getPriorityValue()-1);
-        }
+        changePriorityTaskArray(1, task.getType().getPriorityValue()-1);
         execute(task);
         return task;
     }
@@ -107,9 +100,7 @@ public class CustomExecutor extends ThreadPoolExecutor{
         super.beforeExecute(t, r);
         if(r instanceof Task<?> task)
         {
-            synchronized (this){
-                changePriorityTaskArray(2, task.getType().getPriorityValue()-1);
-            }
+            changePriorityTaskArray(2, task.getType().getPriorityValue()-1);
         }
     }
 
@@ -121,21 +112,29 @@ public class CustomExecutor extends ThreadPoolExecutor{
      * @param priorityTask the priority of the task
      * @return -1 if whichFunction is 1 or 2, otherwise the max priority in the array
      */
-    private synchronized int changePriorityTaskArray(int whichFunction, int priorityTask)
+    private int changePriorityTaskArray(int whichFunction, int priorityTask)
     {
-        if(whichFunction == 0) {
-            for (int priority = 0; priority < 10; priority++) {
-                if (0 < priorityTaskArray[priority]) {
-                    return priority + 1;
+        synchronized (Task.class) {
+            if (whichFunction == 0) {
+                synchronized (Task.class) {
+                    for (int priority = 0; priority < 10; priority++) {
+                        if (0 < priorityTaskArray[priority]) {
+                            return priority + 1;
+                        }
+                    }
+                }
+            } else if (whichFunction == 1) {
+                synchronized (Task.class) {
+                    priorityTaskArray[priorityTask]++;
+                }
+            } else {
+                synchronized (Task.class) {
+                    priorityTaskArray[priorityTask]--;
                 }
             }
-        } else if (whichFunction == 1) {
-            priorityTaskArray[priorityTask]++;
-        } else {
-            priorityTaskArray[priorityTask]--;
+            System.out.println(Arrays.toString(priorityTaskArray));
+            return -1;
         }
-        System.out.println(Arrays.toString(priorityTaskArray));
-        return -1;
     }
 }
 
