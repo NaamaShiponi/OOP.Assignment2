@@ -132,7 +132,7 @@ public class CustomExecutor extends ThreadPoolExecutor{
                     priorityTaskArray[priorityTask]--;
                 }
             }
-            System.out.println(Arrays.toString(priorityTaskArray));
+//            System.out.println(Arrays.toString(priorityTaskArray));
             return -1;
         }
     }
